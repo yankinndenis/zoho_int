@@ -99,7 +99,7 @@ add_action( 'my_hourly_event', 'addZohotoDb' );
 function add_my_cron_event() {
 
     if( ! wp_next_scheduled( 'my_hourly_event' ) ) {
-        wp_schedule_event( time(), '15min', 'my_hourly_event');
+        wp_schedule_event( time(), 'hourly', 'my_hourly_event');
     }
 }
 add_action( 'wp', 'add_my_cron_event' );
@@ -107,36 +107,194 @@ add_action( 'wp', 'add_my_cron_event' );
 function addZohotoDb(){
     global $wpdb;
     $table = $wpdb->prefix . 'zoho_orders';
-    $wpdb->query("TRUNCATE TABLE $table");
+    // $wpdb->query("TRUNCATE TABLE $table");
 
     $url = get_option('zoho_url');
     $token = get_option('zoho_authorization');
     $organization = get_option('zoho_organization');
     $items = Zoho_int::get_items($url, $token, $organization);
-    
+    // $i = 0;
     foreach($items as $item){
+       // $item_id = $item['Item_ID'];
+       // $table = $wpdb->prefix . 'zoho_orders';
+       // $results = $wpdb->get_results( "SELECT item_id FROM $table WHERE item_id = '$item_id'"); 
+       // if(empty($results)){
         $sku = strval($item['SKU']);
+        if(isset($item['Item_ID'])){
+            $Item_ID = $item['Item_ID'];
+        }else{
+            $Item_ID = '*';
+        }
+        if(isset($item['QTY_Available'])){
+            $QTY_Available = $item['QTY_Available'];
+        }else{
+            $QTY_Available = '*';
+        }
+        if(isset($item['Category_Name'])){
+            $Category_Name = $item['Category_Name'];
+        }else{
+            $Category_Name = '*';
+        }
+        if(isset($item['Name'])){
+            $Name = $item['Name'];
+        }else{
+            $Name = '*';
+        }
+        if(isset($item['SKU'])){
+            $SKU = $item['SKU'];
+        }else{
+            $SKU = '*';
+        }
+        if(isset($item['Product_Description_Wholsesale'])){
+            $Item_Description = $item['Product_Description_Wholsesale'];
+        }else{
+            $Item_Description = '';
+        }
+        if(isset($item['UPC'])){
+            $UPC = $item['UPC'];
+        }else{
+            $UPC = '*';
+        }
+        if(isset($item['Wholesale_Price'])){
+            $Wholesale_Price = $item['Wholesale_Price'];
+        }else{
+            $Wholesale_Price = '*';
+        }
+        if(isset($item['Sell_At_Price'])){
+            $Sell_At_Price = $item['Sell_At_Price'];
+        }else{
+            $Sell_At_Price = '*';
+        }
+        if(isset($item['MSRP'])){
+            $MSRP = $item['MSRP'];
+        }else{
+            $MSRP = '*';
+        }
+        if(isset($item['Weight'])){
+            $Weight = $item['Weight'];
+        }else{
+            $Weight = '*';
+        }
+        if(isset($item['Weight_Unit'])){
+            $Weight_Unit = $item['Weight_Unit'];
+        }else{
+            $Weight_Unit = '*';
+        }
+        if(isset($item['Length_field'])){
+            $Length_field = $item['Length_field'];
+        }else{
+            $Length_field = '*';
+        }
+        if(isset($item['Weight'])){
+            $Weight = $item['Weight'];
+        }else{
+            $Weight = '*';
+        }
+        if(isset($item['Height'])){
+            $Height = $item['Height'];
+        }else{
+            $Height = '*';
+        }
+        if(isset($item['Dimension_Unit'])){
+            $Dimension_Unit = $item['Dimension_Unit'];
+        }else{
+            $Dimension_Unit = '*';
+        }
+        if(isset($item['Distro_Price'])){
+            $Distro_Price = $item['Distro_Price'];
+        }else{
+            $Distro_Price = '*';
+        }
+        if(isset($item['Customer_Cost'])){
+            $Customer_Cost = $item['Customer_Cost'];
+        }else{
+            $Customer_Cost = '*';
+        }
+        if(isset($item['Public_Image_Url']) && $item['Public_Image_Url']!= ''){
+                $Public_Image_Url = $item['Public_Image_Url'];
+
+                $file=$Public_Image_Url;
+                $filename = basename( $file );
+                $host=__DIR__.'/images'.$filename.'.png';
+
+                copy($file, $host);
+                chmod($host, 0777);
+
+                $image_url = $host;
+                $upload_dir = wp_upload_dir();
+                $image_data = file_get_contents( $image_url );
+                $filename = basename( $image_url );
+                $my_attachment = get_posts( [
+                    'posts_per_page' => 1,
+                    'post_type'   => 'attachment',
+                    's' => $filename
+                ] );
+
+                if(empty($my_attachment)){
+                    if ( wp_mkdir_p( $upload_dir['path'] ) ) {
+                      $file = $upload_dir['path'] . '/' . $filename;
+                    }
+                    else {
+                      $file = $upload_dir['basedir'] . '/' . $filename;
+                    }
+
+                    file_put_contents( $file.'.png', $image_data );
+
+                    $wp_filetype = wp_check_filetype( $filename, null );
+
+                    $attachment = array(
+                      'post_mime_type' => $wp_filetype['type'],
+                      'post_title' => sanitize_file_name( $filename ),
+                      'post_content' => '',
+                      'post_status' => 'inherit'
+                    );
+
+                    $attach_id = wp_insert_attachment( $attachment, $file.'.png' );
+                    require_once( ABSPATH . 'wp-admin/includes/image.php' );
+                    $attach_data = wp_generate_attachment_metadata( $attach_id, $file.'.png' );
+                    wp_update_attachment_metadata( $attach_id, $attach_data );
+                    $image_id = $attach_id;
+                    $table_name = $wpdb->prefix . 'zoho_orders';
+                    $wpdb->update( $table_name, array( 'image_id' => $attach_id), array('sku'=>$sku));
+            }else{
+                $image_id = $my_attachment[0]->ID;
+            }
+        }else{
+            $Public_Image_Url = '';
+            $image_id = '';
+        }
+        
         $wpdb->insert($table, array(
-            'item_id' => $item['Item_ID'],
-            'available' => $item['QTY_Available'],
-            'category' => $item['Category_Name'],
-            'name' => $item['Name'], 
-            'sku' => $item['SKU'], 
-            'item_description' =>  $item['Item_Description'], 
-            'upc' =>  $item['UPC'], 
-            'wholesale_price' =>  $item['Wholesale_Price'], 
-            'sell_at_price' =>  $item['Sell_At_Price'], 
-            'msrp' =>  $item['MSRP'], 
-            'weight' =>  $item['Weight'], 
-            'weight_unit' =>  $item['Weight_Unit'], 
-            'length_field' =>  $item['Length_field'], 
-            'width' =>  $item['Width'], 
-            'height' =>  $item['Height'], 
-            'dimension_unit' => $item['Dimension_Unit'], 
-            'distro_price' => $item['Distro_Price'], 
+            'item_id' => $Item_ID,
+            'available' => $QTY_Available,
+            'category' => $Category_Name,
+            'name' => $Name, 
+            'sku' => $SKU, 
+            'item_description' =>  $Item_Description, 
+            'upc' =>  $UPC, 
+            'wholesale_price' =>  $Wholesale_Price, 
+            'sell_at_price' =>  $Sell_At_Price, 
+            'msrp' =>  $MSRP, 
+            'weight' =>  $Weight, 
+            'weight_unit' =>  $Weight_Unit, 
+            'length_field' =>  $Length_field, 
+            'width' =>  $Width, 
+            'height' =>  $Height, 
+            'dimension_unit' => $Dimension_Unit, 
+            'distro_price' => $Distro_Price, 
+            'customer_cost' => $Customer_Cost,
+            'image_url' => $Public_Image_Url,
+            'image_id' => $image_id
         ));
+        
+       // }
+        // if($i == 750){
+        //     break;
+        // }
+        // $i++;
     }
-    mail("rotuss1206@gmail.com","My subject3", 'day1distro - test3');
+
+    // mail("rotuss1206@gmail.com","My subject6", 'day1distro - test6');
 }
 
 function fixed($json){
@@ -202,21 +360,24 @@ function insert_zoho_table_into_db(){
   id bigint(50) NOT NULL AUTO_INCREMENT,
   item_id bigint(20),
   available bigint(20),
-  category VARCHAR(40),
-  name VARCHAR(40),
-  sku VARCHAR(40),
-  item_description VARCHAR(40),
-  upc VARCHAR(40),
-  wholesale_price VARCHAR(40),
-  sell_at_price VARCHAR(40),
-  msrp VARCHAR(40),
-  weight VARCHAR(40),
-  weight_unit VARCHAR(40),
-  length_field VARCHAR(40),
-  width VARCHAR(40),
-  height VARCHAR(40),
-  dimension_unit VARCHAR(40),
-  distro_price VARCHAR(40),
+  category VARCHAR(400),
+  name VARCHAR(80),
+  sku VARCHAR(80),
+  item_description VARCHAR(1000),
+  upc VARCHAR(80),
+  wholesale_price VARCHAR(80),
+  sell_at_price VARCHAR(80),
+  msrp VARCHAR(80),
+  weight VARCHAR(80),
+  weight_unit VARCHAR(80),
+  length_field VARCHAR(80),
+  width VARCHAR(80),
+  height VARCHAR(80),
+  dimension_unit VARCHAR(80),
+  distro_price VARCHAR(80),
+  customer_cost VARCHAR(80),
+  image_url VARCHAR(380),
+  image_id bigint(30),
   PRIMARY KEY (id)
   ) $charset_collate;";
   require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -344,7 +505,7 @@ function send_orders(){
             }
         }
     }
-    mail("rotuss1206@gmail.com","My subject", 'day1distro - test');
+    // mail("rotuss1206@gmail.com","My subject", 'day1distro - test');
 }
 
 // Add table if not exist
@@ -375,7 +536,7 @@ function create_invoice_for_wc_order( $order_id ) {
 
         foreach ( $order_items as $item_id => $item ) {
             
-            if (isset($item['variation_id'])) { 
+            if (isset($item['variation_id']) && $item['variation_id'] != 0) { 
                 $product = wc_get_product( $item['variation_id'] );
 
             } else {
@@ -383,6 +544,7 @@ function create_invoice_for_wc_order( $order_id ) {
             }
             if($product){
                 $item_sku = $product->get_sku();
+                $item_rate = $product->get_regular_price();
             }
             $item_id='';
             foreach($items as $item_z){
@@ -397,6 +559,7 @@ function create_invoice_for_wc_order( $order_id ) {
                 $line_item = new order_item();
                 $line_item->item_id = $item_id;
                 $line_item->quantity = $quantity;
+                $line_item->rate = $item_rate;
                 array_push($line_items, $line_item);
             }
         }
@@ -663,9 +826,94 @@ add_action('wp_ajax_update_products_by_zoho', 'update_products_by_zoho');
 add_action('wp_ajax_nopriv_update_products_by_zoho', 'update_products_by_zoho');
 
 function update_products_by_zoho_each(){
+    global $wpdb;
 
-  getProductsToUpdate();
-  echo json_encode($result, 320);
+  $string = $_POST['string'];
+  $string_array = explode(",", $string);
+  foreach($string_array as $values){
+    $items = explode(";", $values);
+    $cat = $items[0];
+    $img = $items[1];
+    $name = $items[2];
+    $percent = $items[3];
+    $price = $items[4];
+    $available = $items[5];
+    $sku = $items[6];
+    $product_id = wc_get_product_id_by_sku( $items[6] );
+    if($product_id != 0){
+        $product = wc_get_product( $product_id );
+       
+        // if( $product->is_type( 'variable' ) ){
+        //     var_dump('variable');
+        // }else{
+        //     $price = floatval($price);
+        //     $percent = floatval($percent);
+        //     $per_minus = $price/100*$percent;
+        //     $sum = $price-$per_minus;
+        //     $product->set_price( $sum );
+        //     $product->save();
+        // }
+        $price = floatval($price);
+        $percent = floatval($percent);
+        $per_minus = $price/100*$percent;
+        $sum = $price-$per_minus;
+        $sum = round($sum, 2);
+        
+        $product->set_price( $sum );
+        $product->save();
+
+        $variation = wc_get_product_object( 'variation', $product_id );
+        $variation->set_props(
+                array(
+                    'regular_price' => $sum
+                     )
+            );
+        $variation->save();
+        if($img){
+            $image_url = $img;
+            $upload_dir = wp_upload_dir();
+            $image_data = file_get_contents( $image_url );
+            $filename = basename( $image_url );
+            $my_attachment = get_posts( [
+                'posts_per_page' => 1,
+                'post_type'   => 'attachment',
+                'name' => $filename
+            ] );
+
+            if(empty($my_attachment)){
+                if ( wp_mkdir_p( $upload_dir['path'] ) ) {
+                  $file = $upload_dir['path'] . '/' . $filename;
+                }
+                else {
+                  $file = $upload_dir['basedir'] . '/' . $filename;
+                }
+
+                file_put_contents( $file.'.png', $image_data );
+
+                $wp_filetype = wp_check_filetype( $filename, null );
+
+                $attachment = array(
+                  'post_mime_type' => $wp_filetype['type'],
+                  'post_title' => sanitize_file_name( $filename ),
+                  'post_content' => '',
+                  'post_status' => 'inherit'
+                );
+
+                $attach_id = wp_insert_attachment( $attachment, $file.'.png' );
+                require_once( ABSPATH . 'wp-admin/includes/image.php' );
+                $attach_data = wp_generate_attachment_metadata( $attach_id, $file.'.png' );
+                wp_update_attachment_metadata( $attach_id, $attach_data );
+
+                $table_name = $wpdb->prefix . 'zoho_orders';
+                $wpdb->update( $table_name, array( 'image_id' => $attach_id), array('sku'=>$sku));
+            }else{
+                
+            }     
+        }   
+    }
+         
+  }
+  // echo json_encode($result, 320);
   wp_die();
 
 } //endfunction
@@ -673,6 +921,61 @@ function update_products_by_zoho_each(){
 add_action('wp_ajax_update_products_by_zoho_each', 'update_products_by_zoho_each');
 add_action('wp_ajax_nopriv_update_products_by_zoho_each', 'update_products_by_zoho_each');
 
+add_action( 'after_setup_theme', 'true_add_image_size' );
+ 
+function true_add_image_size() {
+    add_image_size( 'zoho-img_size', 100, 100, true );
+}
+
+add_action( 'init', 'process_post2' );
+function process_post2() {
+    
+    // $file='https://previewengine-accl.zohoexternal.com/image/WD/82babb239f4789cda40f1955f7a2f54aade65';
+    // $filename = basename( $file );
+    // $host=__DIR__.'/images'.$filename.'.png';
+
+    // copy($file, $host);
+    // chmod($host, 0777);
+
+    // $image_url = $host;
+    // $upload_dir = wp_upload_dir();
+    // $image_data = file_get_contents( $image_url );
+    // $filename = basename( $image_url );
+    // $my_attachment = get_posts( [
+    //     'posts_per_page' => 1,
+    //     'post_type'   => 'attachment',
+    //     'name' => $filename
+    // ] );
+
+    // if(empty($my_attachment)){
+    //     if ( wp_mkdir_p( $upload_dir['path'] ) ) {
+    //       $file = $upload_dir['path'] . '/' . $filename;
+    //     }
+    //     else {
+    //       $file = $upload_dir['basedir'] . '/' . $filename;
+    //     }
+
+    //     file_put_contents( $file.'.png', $image_data );
+
+    //     $wp_filetype = wp_check_filetype( $filename, null );
+
+    //     $attachment = array(
+    //       'post_mime_type' => $wp_filetype['type'],
+    //       'post_title' => sanitize_file_name( $filename ),
+    //       'post_content' => '',
+    //       'post_status' => 'inherit'
+    //     );
+
+    //     $attach_id = wp_insert_attachment( $attachment, $file.'.png' );
+    //     require_once( ABSPATH . 'wp-admin/includes/image.php' );
+    //     $attach_data = wp_generate_attachment_metadata( $attach_id, $file.'.png' );
+    //     wp_update_attachment_metadata( $attach_id, $attach_data );
+
+    //     $table_name = $wpdb->prefix . 'zoho_orders';
+    //     $wpdb->update( $table_name, array( 'image_id' => $attach_id), array('sku'=>$sku));
+    // }
+// echo wp_get_attachment_image( 37242, 'zoho-img_size');
+}
 // global $wpdb;
 //     $table = $wpdb->prefix . 'zoho_orders';
 //     $wpdb->query("TRUNCATE TABLE $table");
@@ -681,7 +984,7 @@ add_action('wp_ajax_nopriv_update_products_by_zoho_each', 'update_products_by_zo
 //     $token = get_option('zoho_authorization');
 //     $organization = get_option('zoho_organization');
 //     $items = Zoho_int::get_items($url, $token, $organization);
-    
+// var_dump($items);    
 //     foreach($items as $item){
 //         $sku = strval($item['SKU']);
 //         $wpdb->insert($table, array(
@@ -702,5 +1005,10 @@ add_action('wp_ajax_nopriv_update_products_by_zoho_each', 'update_products_by_zo
 //             'height' =>  $item['Height'], 
 //             'dimension_unit' => $item['Dimension_Unit'], 
 //             'distro_price' => $item['Distro_Price'], 
+//             'customer_cost' => $item['Customer_Cost'] 
 //         ));
 //     }
+
+// $items = getZohoFromDb();
+// var_dump($items);
+

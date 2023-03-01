@@ -36,14 +36,19 @@
 	
 </div>
 <?php
-// і
 // update_option('btb', '');
-// $opt = get_option('btb');
-// var_dump($opt);
-echo "<pre>";
-// getProductsToUpdate();
-
-
-
-
+$opt = get_option('btb');
+var_dump($opt);
+// echo '<pre>';
+// $url = get_option('zoho_url');
+//     $token = get_option('zoho_authorization');
+//     $organization = get_option('zoho_organization');
+// $items = Zoho_int::get_items($url, $token, $organization);
+// $i=0;
+// foreach($items as $item){
+// 	var_dump($item);
+// 	$i++;
+// }
+// var_dump($i);
+// addZohotoDb();
 

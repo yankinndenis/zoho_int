@@ -268,3 +268,23 @@
         -webkit-animation: spin 1s linear infinite;
         animation: spin 1s linear infinite;
     }
+.plus_10 span{
+	width: 20px;
+    text-align: center;
+    border: 1px solid gray;
+    background: #fece14;
+    border-radius: 3px;
+    margin: 0 5px;
+    cursor: pointer;
+    -moz-user-select: none;
+	-khtml-user-select: none;
+	user-select: none;  
+}
+.plus_10 input{
+	width: 30px;
+    border: 0;
+    border: 1px solid;
+}
+#myTable td img{
+	width: 70px;
+}
